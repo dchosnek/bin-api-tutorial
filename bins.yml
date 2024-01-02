@@ -29,7 +29,7 @@ Resources:
             Action: sts:AssumeRole
             Principal:
               Service: lambda.amazonaws.com
-      Description: role for lambda that handles Webex webhooks
+      Description: role for lambda that creates JWT
       Policies:
         - PolicyName: localCloudWatchWrite
           PolicyDocument:
@@ -40,14 +40,30 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
               Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        - PolicyName: localDynamoWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - dynamodb:PutItem
+              Resource: !GetAtt BinsTable.Arn
+        - PolicyName: localDynamoQueryWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - dynamodb:Query
+              Resource: arn:aws:dynamodb:us-east-1:130262737601:table/binApi-bins/index/EmailIndex
 
-  # InvokePermissionCreateToken:
-  #   Type: AWS::Lambda::Permission
-  #   Properties:
-  #     Action: lambda:InvokeFunction
-  #     FunctionName: !Ref LambdaCreateToken
-  #     Principal: apigateway.amazonaws.com
-  #     SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/POST/webex"
+  InvokePermissionCreateToken:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaCreateToken
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/GET/token"
 
   # ---------------------------------------------
   # DynamoDB Table
@@ -93,6 +109,14 @@ Resources:
         Variables:
           SECRET_PHRASE: !Ref JwtSecretPhrase
           TABLE_NAME: !Ref BinsTable
+
+  # ---------------------------------------------
+  # Cloudwatch logs: log group for lambda function
+  LogGroupCreateToken:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaCreateToken}"
+      RetentionInDays: 5
 
 
   # ---------------------------------------------
@@ -155,25 +179,25 @@ Resources:
         method.request.querystring.email: true
       RequestValidatorId: !Ref ApiGwEmailValidator
       Integration:
-        Type: MOCK
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCreateToken.Arn}/invocations
         RequestTemplates:
           application/json: |
             {
-              "statusCode": 200
+              "email": "$input.params('email')"
             }
         IntegrationResponses:
           - StatusCode: 200
             ResponseTemplates:
               application/json: |
-                {
-                  "message": "Token created successfully"
-                }
+                #set($inputRoot = $input.path('$'))
+                $inputRoot.body
           - StatusCode: 400
             ResponseTemplates:
               application/json: |
-                {
-                  "message": "Token already exists"
-                }
+                #set($inputRoot = $input.path('$'))
+                $inputRoot.body
       MethodResponses:
         - StatusCode: 200
           ResponseModels:
