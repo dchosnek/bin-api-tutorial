@@ -49,6 +49,37 @@ Resources:
               - dynamodb:PutItem
               - dynamodb:Query
               Resource: !GetAtt BinsTable.Arn
+  
+  IamGetBins:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-GetBins"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: lambda.amazonaws.com
+      Description: role for lambda that retrieves bins
+      Policies:
+        - PolicyName: localCloudWatchWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        - PolicyName: localDynamoRead
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - dynamodb:Query
+              Resource: !GetAtt BinsTable.Arn
 
   InvokePermissionCreateToken:
     Type: AWS::Lambda::Permission
@@ -57,6 +88,14 @@ Resources:
       FunctionName: !Ref LambdaCreateToken
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/GET/token"
+  
+  InvokePermissionGetBins:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaGetBins
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/GET/bins"
 
   # ---------------------------------------------
   # DynamoDB Table
@@ -93,6 +132,28 @@ Resources:
         Variables:
           SECRET_PHRASE: !Ref JwtSecretPhrase
           TABLE_NAME: !Ref BinsTable
+  
+  LambdaGetBins:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        # S3Bucket: !Ref S3BucketName
+        # S3Key: !Ref S3KeyWebexPackage
+        ZipFile: |
+          import json
+          def lambda_handler(event, context):
+              print("EVENT IS BELOW")
+              print(event)
+      Description: "gets a list of all bins"
+      FunctionName: !Sub "${AWS::StackName}-GetBins"
+      Handler: index.lambda_handler
+      Role: !GetAtt IamCreateToken.Arn
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          SECRET_PHRASE: !Ref JwtSecretPhrase
+          TABLE_NAME: !Ref BinsTable
 
   # ---------------------------------------------
   # Cloudwatch logs: log group for lambda function
@@ -100,6 +161,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${LambdaCreateToken}"
+      RetentionInDays: 5
+  
+  LogGroupGetBins:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaGetBins}"
       RetentionInDays: 5
 
 
@@ -172,6 +239,25 @@ Resources:
               "email": "$input.params('email')"
             }
       ResourceId: !Ref ApiGwResourceToken
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwResourceBins:
+    Type: AWS::ApiGateway::Resource
+    Properties: 
+      ParentId: !GetAtt ApiGatewayMain.RootResourceId
+      PathPart: bins
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwBinsGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaGetBins.Arn}/invocations
+      ResourceId: !Ref ApiGwResourceBins
       RestApiId: !Ref ApiGatewayMain
 
   # ------------------------------------
