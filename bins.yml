@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: REST Api for bins
+Description: REST API Tutorial using storage bins
 
 # =============================================================================
 # INPUTS - questions to ask user at stack creation time
@@ -148,24 +148,24 @@ Resources:
       KeySchema:
         - AttributeName: email
           KeyType: HASH
-      TableName: !Sub "${AWS::StackName}-bins2"
+      # TableName: !Sub "${AWS::StackName}-bins"
 
   LambdaCreateToken:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        # S3Bucket: !Ref S3BucketName
-        # S3Key: !Ref S3KeyWebexPackage
-        ZipFile: |
-          import json
-          def lambda_handler(event, context):
-              print("EVENT IS BELOW")
-              print(event)
+        S3Bucket: doron-lambda
+        S3Key: create_token.zip
+        # ZipFile: |
+        #   import json
+        #   def lambda_handler(event, context):
+        #       print("EVENT IS BELOW")
+        #       print(event)
       Description: "Creates JWT token"
       FunctionName: !Sub "${AWS::StackName}-CreateToken"
       Handler: index.lambda_handler
       Role: !GetAtt IamCreateToken.Arn
-      Runtime: python3.9
+      Runtime: python3.12
       Timeout: 30
       Environment:
         Variables:
@@ -176,18 +176,18 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        # S3Bucket: !Ref S3BucketName
-        # S3Key: !Ref S3KeyWebexPackage
-        ZipFile: |
-          import json
-          def lambda_handler(event, context):
-              print("EVENT IS BELOW")
-              print(event)
+        S3Bucket: doron-lambda
+        S3Key: create_token.zip
+        # ZipFile: |
+        #   import json
+        #   def lambda_handler(event, context):
+        #       print("EVENT IS BELOW")
+        #       print(event)
       Description: "gets a list of all bins"
       FunctionName: !Sub "${AWS::StackName}-GetBins"
       Handler: index.lambda_handler
       Role: !GetAtt IamGetBins.Arn
-      Runtime: python3.9
+      Runtime: python3.12
       Timeout: 30
       Environment:
         Variables:
@@ -198,18 +198,18 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        # S3Bucket: !Ref S3BucketName
-        # S3Key: !Ref S3KeyWebexPackage
-        ZipFile: |
-          import json
-          def lambda_handler(event, context):
-              print("EVENT IS BELOW")
-              print(event)
+        S3Bucket: doron-lambda
+        S3Key: create_token.zip
+        # ZipFile: |
+        #   import json
+        #   def lambda_handler(event, context):
+        #       print("EVENT IS BELOW")
+        #       print(event)
       Description: "creates a new bin"
       FunctionName: !Sub "${AWS::StackName}-CreateBins"
       Handler: index.lambda_handler
       Role: !GetAtt IamCreateBins.Arn
-      Runtime: python3.9
+      Runtime: python3.12
       Timeout: 30
       Environment:
         Variables:
