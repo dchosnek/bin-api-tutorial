@@ -47,15 +47,8 @@ Resources:
             - Effect: Allow
               Action:
               - dynamodb:PutItem
-              Resource: !GetAtt BinsTable.Arn
-        - PolicyName: localDynamoQueryWrite
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-            - Effect: Allow
-              Action:
               - dynamodb:Query
-              Resource: arn:aws:dynamodb:us-east-1:130262737601:table/binApi-bins/index/EmailIndex
+              Resource: !GetAtt BinsTable.Arn
 
   InvokePermissionCreateToken:
     Type: AWS::Lambda::Permission
@@ -71,22 +64,13 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       AttributeDefinitions:
-        - AttributeName: jwt
-          AttributeType: S
         - AttributeName: email
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       KeySchema:
-        - AttributeName: jwt
+        - AttributeName: email
           KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: EmailIndex
-          KeySchema:
-            - AttributeName: email
-              KeyType: HASH
-          Projection:
-            ProjectionType: KEYS_ONLY
-      TableName: !Sub "${AWS::StackName}-bins"
+      TableName: !Sub "${AWS::StackName}-bins2"
 
   LambdaCreateToken:
     Type: AWS::Lambda::Function
@@ -179,7 +163,7 @@ Resources:
         method.request.querystring.email: true
       RequestValidatorId: !Ref ApiGwEmailValidator
       Integration:
-        Type: AWS
+        Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCreateToken.Arn}/invocations
         RequestTemplates:
@@ -187,24 +171,6 @@ Resources:
             {
               "email": "$input.params('email')"
             }
-        IntegrationResponses:
-          - StatusCode: 200
-            ResponseTemplates:
-              application/json: |
-                #set($inputRoot = $input.path('$'))
-                $inputRoot.body
-          - StatusCode: 400
-            ResponseTemplates:
-              application/json: |
-                #set($inputRoot = $input.path('$'))
-                $inputRoot.body
-      MethodResponses:
-        - StatusCode: 200
-          ResponseModels:
-            application/json: "Empty"
-        - StatusCode: 403
-          ResponseModels:
-            application/json: "Error"
       ResourceId: !Ref ApiGwResourceToken
       RestApiId: !Ref ApiGatewayMain
 
