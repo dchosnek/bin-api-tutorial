@@ -38,11 +38,8 @@ def lambda_handler(event, context):
     
     else:
         # read the bins from the database
-        response = table.query(
-            KeyConditionExpression='email = :email',
-            ExpressionAttributeValues={':email': email}
-        )
-        db_row = response['Items'][0]
+        response = table.get_item(Key={'email': email})
+        db_row = response.get('Item')
         body = json.dumps(dict(bins=[k for k in db_row['bins']]))
         
     return {
@@ -52,4 +49,3 @@ def lambda_handler(event, context):
         },
         "body": body
     }
-    
