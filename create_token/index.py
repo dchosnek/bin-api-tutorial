@@ -16,15 +16,13 @@ def lambda_handler(event, context):
     # email = event.get('email')
     email = event['queryStringParameters']['email']
     
-    # check if email already exists in the database
-    response = table.query(
-        KeyConditionExpression='email = :email',
-        ExpressionAttributeValues={':email': email}
-    )
+    # check if email already exists in the database; the response will be null
+    # if the user does not exist
+    response = table.get_item(Key={'email': email})
+    db_row = response.get('Item')
     
     # user exists
-    if response.get('Items', []):
-        db_row = response['Items'][0]
+    if db_row:
         existing_token = db_row['jwt']
         refresh_token = False
         try:
@@ -32,9 +30,11 @@ def lambda_handler(event, context):
             print("Existing user with valid token. No token will be generated.")
         except jwt.ExpiredSignatureError:
             refresh_token = True
+            db_row['bins'] = {}
             print("Existing user token is expired. Generating a new one.")
         except jwt.InvalidSignatureError:
             refresh_token = True
+            db_row['bins'] = {}
             print("Existing user token has invalid signature. Generating a new one.")
         
     # user does not exist
@@ -43,13 +43,14 @@ def lambda_handler(event, context):
         db_row = dict(
             email=email,
             jwt="",
-            bins={}
+            bins={},
+            created=datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         )
         print("New user. Generating a new token.")
         
     # now we know if we need to generate a new token or not
     if refresh_token:
-        expiration = datetime.now(tz=timezone.utc)+timedelta(minutes=10)
+        expiration = datetime.now(tz=timezone.utc)+timedelta(hours=4)
         payload = dict(
             email=email,
             exp=expiration,
