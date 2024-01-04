@@ -47,7 +47,7 @@ Resources:
             - Effect: Allow
               Action:
               - dynamodb:PutItem
-              - dynamodb:Query
+              - dynamodb:GetItem
               Resource: !GetAtt BinsTable.Arn
   
   IamGetBins:
@@ -78,7 +78,7 @@ Resources:
             Statement:
             - Effect: Allow
               Action:
-              - dynamodb:Query
+              - dynamodb:GetItem
               Resource: !GetAtt BinsTable.Arn
   
   IamCreateBins:
@@ -414,6 +414,30 @@ Resources:
     Properties:
       AuthorizationType: NONE
       HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaBinHandler.Arn}/invocations
+      ResourceId: !Ref ApiGwResourceBinId
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwBinIdPut:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: PUT
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaBinHandler.Arn}/invocations
+      ResourceId: !Ref ApiGwResourceBinId
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwBinIdDelete:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: DELETE
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
