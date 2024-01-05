@@ -1,3 +1,7 @@
+"""
+This lambda handles GET, UPDATE and DELETE operations to a bin by its binId.
+"""
+
 import json
 import boto3
 import os
@@ -44,7 +48,10 @@ def lambda_handler(event, context):
     response = table.get_item(Key={'email': email})
     db_row = response.get('Item', dict())
     
+    # determine what type of operation this is
     http_method = event['httpMethod']
+
+    # get the binId and contents
     bin_id = event['pathParameters']['binId']
     bins = db_row.get('bins', dict())
     
@@ -57,24 +64,26 @@ def lambda_handler(event, context):
             "body": ""
         }
     
+    # case statement to handle the different actions
     match http_method:
         
+        # ------------- GET ---------------------------------------------------
         case "GET":
             
             print("GET")
-
             status_code = 200
-            body = json.dumps(bins.get(bin_id, ""))
+            contents = bins.get(bin_id, "")
+            body = json.dumps(dict(binId=bin_id, contents=contents))
         
+        # ------------- UPDATE ------------------------------------------------
         case "PUT":
             
             print("PUT")
-                
             request_body = event.get('body', '{}')
             try:
                 content_dict = json.loads(request_body)
-                status_code = 200 if 'content' in content_dict else 400
-                new_value = content_dict.get('content', '')
+                status_code = 200 if 'contents' in content_dict else 400
+                new_value = content_dict.get('contents', '')
             except:
                 status_code = 400
 
@@ -86,10 +95,11 @@ def lambda_handler(event, context):
                     ExpressionAttributeValues={':newBinValue': new_value},
                     ReturnValues="UPDATED_NEW"
                 )
-                body = ""
+                body = json.dumps(dict(binId=bin_id, contents=new_value))
             else:
-                body = json.dumps(event)
+                body = ""
         
+        # ------------- DELETE ------------------------------------------------
         case "DELETE":
             
             print("DELETE")
@@ -103,13 +113,14 @@ def lambda_handler(event, context):
             )
             
         case _:
-            
+            # this code should never execute since API GW prevents other HTTP
+            # operations from being sent to this handler
             print("DEFAULT")
             status_code = 502
             body = ""
     
 
-    
+    # return template
     return {
         "statusCode": status_code,
         "headers": {
