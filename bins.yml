@@ -146,6 +146,29 @@ Resources:
               - dynamodb:GetItem
               - dynamodb:UpdateItem
               Resource: !GetAtt BinsTable.Arn
+  
+  IamVerifyToken:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-VerifyToken"
+      Description: role for lambda that verifies user tokens
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+        - PolicyName: localCloudWatchWrite
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
   # ---------------------------------------------
   # Lambda Permissions for API GW (four created)
@@ -179,6 +202,14 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref LambdaBinHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/*/*"
+  
+  InvokeVerifyToken:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaVerifyToken
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/*/*"
 
@@ -265,6 +296,22 @@ Resources:
         Variables:
           SECRET_PHRASE: !Ref JwtSecretPhrase
           TABLE_NAME: !Ref BinsTable
+  
+  LambdaVerifyToken:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: verify_token.zip
+      FunctionName: !Sub "${AWS::StackName}-VerifyToken"
+      Description: verifies a user jwt token
+      Handler: index.lambda_handler
+      Role: !GetAtt IamVerifyToken.Arn
+      Runtime: python3.12
+      Timeout: 30
+      Environment:
+        Variables:
+          SECRET_PHRASE: !Ref JwtSecretPhrase
 
   # ---------------------------------------------
   # Cloudwatch logs: log group for lambda function
@@ -290,6 +337,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "/aws/lambda/${LambdaBinHandler}"
+      RetentionInDays: 5
+
+  LogGroupVerifyToken:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${LambdaVerifyToken}"
       RetentionInDays: 5
 
   # ---------------------------------------------
@@ -361,6 +414,25 @@ Resources:
               "email": "$input.params('email')"
             }
       ResourceId: !Ref ApiGwResourceToken
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwResourceTokenId:
+    Type: AWS::ApiGateway::Resource
+    Properties: 
+      ParentId: !Ref ApiGwResourceToken
+      PathPart: '{token}'
+      RestApiId: !Ref ApiGatewayMain
+
+  ApiGwTokenIdGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaVerifyToken.Arn}/invocations
+      ResourceId: !Ref ApiGwResourceTokenId
       RestApiId: !Ref ApiGatewayMain
 
   ApiGwResourceBins:
