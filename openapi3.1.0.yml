@@ -1,0 +1,247 @@
+openapi: 3.1.0
+info:
+  title: Bins API
+  description: |-
+    This simple REST API exists as a tutorial for learning about REST APIs and clients such as Postman.
+
+    Some useful links:
+    - [Postman](https://postman.com)
+    - [REST APIs explained](https://aws.amazon.com/what-is/restful-api/)
+  contact:
+    email: dchosnek@cisco.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.11
+servers:
+  - url: https://hyzcf9p535.execute-api.us-east-1.amazonaws.com/v1
+tags:
+  - name: about
+    description: Basic information about this API
+  - name: token
+    description: Retrieve and verify keys to access this API
+  - name: bins
+    description: Virtual locations to temporarily store information
+paths:
+  /about:
+    get:
+      tags:
+        - about
+      summary: Retrieve information about this API
+      description: Retrieve sumary information about this API such as its creation date
+      operationId: getInformation
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/About'
+  /token:
+    get:
+      tags:
+        - token
+      summary: Retrieve a token to access this API
+      description: |
+        This API is a playground and not meant to be truly secure. You can supply your email address
+        and retrieve a token valid for 4 hours of API use. After 4 hours, you will have to generate a
+        new token and your existing data will be permanently erased.
+      operationId: GetToken
+      parameters:
+        - name: email
+          in: query
+          description: Email address
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '403':
+          description: Forbidden. A key has already been assigned to this email address.
+  /token/{token}:
+    get:
+      tags:
+        - token
+      summary: Verify a token is valid
+      description: |
+        This API uses expiring JWT (JSON Web Tokens) for authenitcation. Use this operation to verify that a token is still valid.
+      externalDocs:
+        url: https://jwt.io/
+      parameters:
+        - name: token
+          in: path
+          description: User token to verify
+          required: true
+          schema:
+            type: string
+            examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
+      responses:
+        200:
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        400:
+          description: Token is corrupt
+        401:
+          description: Token has expired
+  /bins:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - bins
+      summary: Retrieve a list of bin IDs
+      description: |
+        Retrieve an array of IDs for existing bins. If no bins have been created, an empty array is returned. 
+        This endpoint does not return bin contents.
+      operationId: getBinList
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BinId'
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - bins
+      summary: Create a new bin
+      description: Create a new bin and return the randomly generated ID of that bin
+      operationId: createBin
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bin'
+  /bins/{binId}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - bins
+      summary: Retrieve the contents of a bin
+      description: Retrieve the contents of the specified bin
+      operationId: getBinById
+      parameters:
+        - name: binId
+          in: path
+          description: the ID of an existing bin
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                examples: [the quick brown fox jumped over the lazy dog]
+    put:
+      security:
+        - bearerAuth: []
+      tags:
+        - bins
+      summary: Modify the contents of a bin
+      description: Modify (overwrite) the contents of the specified bin
+      operationId: updateBinById
+      parameters:
+        - name: binId
+          in: path
+          description: the ID of an existing bin
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+        404:
+          description: Bin not found
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - bins
+      summary: Delete a bin
+      description: Permanently delete the specified bin
+      operationId: deleteBinById
+      parameters:
+        - name: binId
+          in: path
+          description: the ID of an existing bin
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Successfully deleted
+        404:
+          description: Bin not found
+components:
+  schemas:
+    About:
+      type: object
+      properties:
+        SpiritAnimal:
+          type: string
+          examples: [Magic Pony]
+        CreationDate:
+          type: string
+          examples: [January 1 2024]
+    Bin:
+      required:
+      - binId
+      type: object
+      properties:
+        binId:
+          type: string
+          examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
+    BinId:
+      type: string
+      examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
+    Token:
+      required:
+        - token
+        - expiration
+      type: object
+      properties:
+        token:
+          type: string
+          examples: [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20iLCJleHAiOjE3MDQ0MzU3MTYsImV4cGlyYXRpb24iOiIwNSBKYW4gMjAyNCwgMDY6MjE6NTYgVVRDIn0.QJutL61usyrsDfPf5ezKGUqOnEkyz6gLH-m3bXlN9es]
+        expiration:
+          type: string
+          examples: [05 Jan 2024 06:21:56 UTC]
+  requestBodies:
+    BinValue:
+      description: New contents for the specified bin
+      content:
+        application/json:
+          schema:
+            properties:
+              contents:
+                type: string
+                examples: [the quick brown fox jumped over the lazy dog]
+    Token:
+      description: A token to be validated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Token'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
