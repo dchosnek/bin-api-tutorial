@@ -20,7 +20,7 @@ Parameters:
 Resources:
 
   # ---------------------------------------------
-  # IAM Roles (four created)
+  # IAM Roles (5 created)
   IamCreateToken:
     Type: AWS::IAM::Role
     Properties:
@@ -171,7 +171,7 @@ Resources:
               Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
 
   # ---------------------------------------------
-  # Lambda Permissions for API GW (four created)
+  # Lambda Permissions for API GW (5 created)
 
   InvokeCreateToken:
     Type: AWS::Lambda::Permission
@@ -203,7 +203,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref LambdaBinHandler
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/*/*"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/*/bins/{binId}"
   
   InvokeVerifyToken:
     Type: AWS::Lambda::Permission
@@ -211,7 +211,7 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref LambdaVerifyToken
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/*/*"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayMain}/*/GET/token/{token}"
 
   # ---------------------------------------------
   # DynamoDB Table (one created)
@@ -228,7 +228,7 @@ Resources:
       TableName: !Sub "${AWS::StackName}-bins"
 
   # ---------------------------------------------
-  # Lambda Functions (four created)
+  # Lambda Functions (5 created)
   LambdaCreateToken:
     Type: AWS::Lambda::Function
     Properties:
@@ -314,7 +314,7 @@ Resources:
           SECRET_PHRASE: !Ref JwtSecretPhrase
 
   # ---------------------------------------------
-  # Cloudwatch logs: log group for lambda function
+  # Cloudwatch log groups for lambda (5 created)
   LogGroupCreateToken:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -347,8 +347,9 @@ Resources:
 
   # ---------------------------------------------
   # API Gateway - one gateway with:
-  #    3 resources (webex, ideas, smartsheet)
-  #    2 stages (dev and prod)
+  #    3 resources (about, token, bins)
+  #    8 methods
+  #    1 stage: v1
   ApiGatewayMain:
     Type: AWS::ApiGateway::RestApi
     Properties: 
@@ -541,6 +542,7 @@ Resources:
     DependsOn:
       - ApiGwAboutGet
       - ApiGwTokenGet
+      - ApiGwTokenIdGet
       - ApiGwBinIdDelete
       - ApiGwBinIdPut
       - ApiGwBinIdGet
