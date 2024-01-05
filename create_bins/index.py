@@ -32,15 +32,19 @@ def lambda_handler(event, context):
     print("EVENT IS BELOW")
     print(event)
     
+    # verify token and retrieve user email
     status_code, email = validate_token(event, SECRET_PHRASE)
     
+    # if the email does not exist (due to invalid token), set body to empty
     if email is None:
-        body = json.dumps(event)
+        body = ""
     
     else:
 
+        # generate a new and random UUID as the ID for the bin
         bin_id = str(uuid.uuid4())
         
+        # add the new bin
         response = table.update_item(
             Key={'email':email},
             UpdateExpression="SET bins.#newBinKey = :newBinValue",
@@ -51,7 +55,7 @@ def lambda_handler(event, context):
         
         status_code = 201
         
-        body = json.dumps(dict(binId=bin_id))
+        body = json.dumps(dict(binId=bin_id,contents=""))
         
     return {
         "statusCode": status_code,
