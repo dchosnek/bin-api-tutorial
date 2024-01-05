@@ -53,8 +53,7 @@ def lambda_handler(event, context):
         expiration = datetime.now(tz=timezone.utc)+timedelta(hours=4)
         payload = dict(
             email=email,
-            exp=expiration,
-            expiration=expiration.strftime('%d %b %Y, %H:%M:%S %Z')
+            exp=expiration
         )
         new_token = jwt.encode(payload, SECRET_PHRASE, algorithm="HS256")
         db_row['jwt'] = new_token
@@ -62,19 +61,23 @@ def lambda_handler(event, context):
         # write new user to the database or update existing user
         response = table.put_item(Item=db_row)
     
-    # Return value based on whether we generated a new token or not.
-    # An existing token is never resent.
-    
-    if refresh_token:
+        # Return value based on whether we generated a new token or not.
+        # An existing token is never resent.
+
+        body = dict(
+            token=new_token,
+            expiration=expiration.strftime('%d %b %Y, %H:%M:%S %Z')
+        )
     
         return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json"
             },
-            "body": json.dumps({"token": new_token})
+            "body": json.dumps(body)
         }
-        
+    
+    # new token is not generated for one of several reasons
     else:
         
         return {
