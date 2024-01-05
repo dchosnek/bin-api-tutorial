@@ -220,10 +220,11 @@ components:
       properties:
         token:
           type: string
-          examples: [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20iLCJleHAiOjE3MDQ0MzU3MTYsImV4cGlyYXRpb24iOiIwNSBKYW4gMjAyNCwgMDY6MjE6NTYgVVRDIn0.QJutL61usyrsDfPf5ezKGUqOnEkyz6gLH-m3bXlN9es]
+          examples: [eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImV4YW1wbGVAZXhhbXBsZS5jb20iLCJleHAiOjE3MDQ0MzU3MTZ9.GjjKsC1ldfZNUJd99wUgHigOu6XuS86qqp7JCWH-gvc]
         expiration:
           type: string
-          examples: [05 Jan 2024 06:21:56 UTC]
+          examples:
+            - 05 Jan 2024, 06:21:56 UTC
   requestBodies:
     BinValue:
       description: New contents for the specified bin
