@@ -28,14 +28,10 @@ def lambda_handler(event, context):
         try:
             jwt.decode(existing_token, SECRET_PHRASE, algorithms=["HS256"])
             print("Existing user with valid token. No token will be generated.")
-        except jwt.ExpiredSignatureError:
+        except:
             refresh_token = True
             db_row['bins'] = {}
-            print("Existing user token is expired. Generating a new one.")
-        except jwt.InvalidSignatureError:
-            refresh_token = True
-            db_row['bins'] = {}
-            print("Existing user token has invalid signature. Generating a new one.")
+            print("Issue with existing token. Generating a new one.")
         
     # user does not exist
     else:
