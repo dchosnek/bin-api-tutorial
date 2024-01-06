@@ -17,10 +17,11 @@ def lambda_handler(event, context):
         status_code = 200
     except jwt.ExpiredSignatureError:
         status_code = 401
-    except jwt.InvalidSignatureError:
+    # this is a catch-all for the many ways a token could be incorrect
+    except:
         status_code = 400
     
-    # attempt to conver the 'exp' field to a datetime string; this will fail
+    # attempt to convert the 'exp' field to a datetime string; this will fail
     # if the decode failed, hence the use of try/except here
     try:
         timestamp = datetime.fromtimestamp(decoded['exp'])
@@ -28,15 +29,19 @@ def lambda_handler(event, context):
     except:
         expiration = "unknown"
 
+    # if there is a problem with the token, return an empty body
+    if status_code == 200:
+        body = json.dumps(dict(
+            token=token,
+            expiration=expiration
+        ))
+    else:
+        body = ""
+
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(
-                dict(
-                    token=token,
-                    expiration=expiration
-                )
-            )
+        "body": body
     }
