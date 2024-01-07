@@ -4,6 +4,12 @@ info:
   description: |-
     This simple REST API exists as a tutorial for learning about REST APIs and clients such as Postman.
 
+    This API allows users to create virtual storage bins, update the data stored in those bins, and delete the bins.
+    The feature set is simple, but the API features a mix of GET, POST, PUT, and DELETE operations with query
+    parameters, path parameters, and body parameters.
+
+    The bins are protected by a token, and users can generate their own tokens through the API.
+
     Some useful links:
     - [Postman](https://postman.com)
     - [REST APIs explained](https://aws.amazon.com/what-is/restful-api/)
@@ -27,7 +33,7 @@ paths:
     get:
       tags:
         - about
-      summary: Retrieve information about this API
+      summary: Basic information about this API
       description: Retrieve sumary information about this API such as its creation date
       operationId: getInformation
       responses:
@@ -41,7 +47,7 @@ paths:
     get:
       tags:
         - token
-      summary: Retrieve a token to access this API
+      summary: Generate a token to access this API
       description: |
         This API is a playground and not meant to be truly secure. You can supply your email address
         and retrieve a token valid for 4 hours of API use. After 4 hours, you will have to generate a
@@ -55,13 +61,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        200:
           description: Successful operation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Token'
-        '403':
+        403:
           description: Forbidden. A key has already been assigned to this email address.
   /token/{token}:
     get:
@@ -88,7 +94,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Token'
         400:
-          description: Token is corrupt
+          description: Token is invalid or incorrectly formatted
         401:
           description: Token has expired
   /bins:
@@ -97,7 +103,7 @@ paths:
         - bearerAuth: []
       tags:
         - bins
-      summary: Retrieve a list of bin IDs
+      summary: Retrieve a binId list for the user
       description: |
         Retrieve an array of IDs for existing bins. If no bins have been created, an empty array is returned. 
         This endpoint does not return bin contents.
@@ -111,6 +117,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/BinId'
+        400:
+          description: Missing or improperly formatted token
+        401:
+          description: Unauthorized
     post:
       security:
         - bearerAuth: []
@@ -120,12 +130,16 @@ paths:
       description: Create a new bin and return the randomly generated ID of that bin
       operationId: createBin
       responses:
-        200:
-          description: Successful operation
+        201:
+          description: Bin created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Bin'
+        400:
+          description: Missing or improperly formatted token
+        401:
+          description: Unauthorized
   /bins/{binId}:
     get:
       security:
@@ -150,6 +164,12 @@ paths:
               schema:
                 type: string
                 examples: [the quick brown fox jumped over the lazy dog]
+        400:
+          description: Missing or improperly formatted token
+        401:
+          description: Unauthorized
+        404:
+          description: Bin not found
     put:
       security:
         - bearerAuth: []
@@ -168,6 +188,10 @@ paths:
       responses:
         200:
           description: Successful operation
+        400:
+          description: Missing or improperly formatted token
+        401:
+          description: Unauthorized
         404:
           description: Bin not found
     delete:
@@ -188,6 +212,10 @@ paths:
       responses:
         204:
           description: Successfully deleted
+        400:
+          description: Missing or improperly formatted token
+        401:
+          description: Unauthorized
         404:
           description: Bin not found
 components:
