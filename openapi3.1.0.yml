@@ -271,6 +271,7 @@ components:
   requestBodies:
     BinValue:
       description: New contents for the specified bin
+      required: true
       content:
         application/json:
           schema:
