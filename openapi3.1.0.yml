@@ -13,8 +13,6 @@ info:
     Some useful links:
     - [Postman](https://postman.com)
     - [REST APIs explained](https://aws.amazon.com/what-is/restful-api/)
-  contact:
-    email: dchosnek@cisco.com
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -127,7 +125,7 @@ paths:
       tags:
         - bins
       summary: Create a new bin
-      description: Create a new bin and return the randomly generated ID of that bin
+      description: Create a new bin and return the randomly generated ID of that bin. New bins are always created empty.
       operationId: createBin
       responses:
         201:
@@ -135,7 +133,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Bin'
+                type: object
+                properties:
+                  binId:
+                    type: string
+                    examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
+                  contents:
+                    type: string
+                    examples: [""]
         400:
           description: Missing or improperly formatted token
         401:
@@ -162,8 +167,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                examples: [the quick brown fox jumped over the lazy dog]
+                $ref: '#/components/schemas/Bin'
         400:
           description: Missing or improperly formatted token
         401:
@@ -185,9 +189,15 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        $ref: '#/components/requestBodies/BinValue'
       responses:
         200:
           description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bin'
         400:
           description: Missing or improperly formatted token
         401:
@@ -209,6 +219,7 @@ paths:
           required: true
           schema:
             type: string
+            examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
       responses:
         204:
           description: Successfully deleted
@@ -228,7 +239,8 @@ components:
           examples: [Magic Pony]
         CreationDate:
           type: string
-          examples: [January 1 2024]
+          examples:
+            - January 1, 2024
     Bin:
       required:
       - binId
@@ -237,6 +249,9 @@ components:
         binId:
           type: string
           examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
+        contents:
+          type: string
+          examples: [the quick brown fox jumped over the lazy dog]
     BinId:
       type: string
       examples: [0d7f5b34-b06f-4d1b-8773-453c1779d401]
@@ -263,12 +278,6 @@ components:
               contents:
                 type: string
                 examples: [the quick brown fox jumped over the lazy dog]
-    Token:
-      description: A token to be validated
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Token'
   securitySchemes:
     bearerAuth:
       type: http
